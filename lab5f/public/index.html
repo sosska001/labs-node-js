@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Lab5_MongoDb</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+
+<body>
+    <style>
+        .container {
+            width: 90%;
+            height: 90%;
+            border: 1px;
+            border: 1.7px solid black;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+    </style>
+    <div class="container">
+        <h2>Список клієнтів</h2>
+        <form name="customerForm">
+            <input type="hidden" name="id" value="0" />
+            <div class="form-group">
+                <label for="name">Назва:</label>
+                <input class="form-control" name="name" />
+            </div>
+            <div class="form-group">
+                <label for="country">Країна:</label>
+                <input class="form-control" name="country" />
+            </div>
+            <div class="form-group">
+                <label for="service">Тип послуг:</label>
+                <input class="form-control" name="service" />
+            </div>
+            <div class="form-group">
+                <label for="email">Вулиця:</label>
+                <input class="form-control" name="email" />
+            </div>
+            <div class="panel-body">
+                <button type="submit" class="btn btn-sm btn-primary">Зберегти</button>
+                <a id="reset" class="btn btn-sm btn-primary">Скинути</a>
+            </div>
+        </form>
+        <table class="table table-condensed table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Назва</th>
+                    <th>Країна</th>
+                    <th>Тип послуг</th>
+                    <th>Пошта</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <script>
+        // Получение всех адресов
+        async function Getadresses() {
+            // отправляет запрос и получаем ответ
+            const response = await fetch("/api/customers", {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            // если запрос прошел нормально
+            if (response.ok === true) {
+                // получаем данные
+                const customers = await response.json();
+                let rows = document.querySelector("tbody");
+                customers.forEach(customer => {
+                    // добавляем полученные элементы в таблицу
+                    rows.append(row(customer));
+                });
+            }
+        }
+        // Получение одного адреса
+        async function Getadress(id) {
+            const response = await fetch("/api/customers/" + id, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const customer = await response.json();
+                const form = document.forms["customerForm"];
+                form.elements["id"].value = customer._id;
+                form.elements["name"].value = customer.name;
+                form.elements["country"].value = customer.country;
+                form.elements["service"].value = customer.service;
+                form.elements["email"].value = customer.email;
+            }
+        }
+        // Добавление адреса
+        async function Createcustomer(custId, custName, custCountry, custService, custEmail) {
+
+            const response = await fetch("api/customers", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    _id: custId,
+                    name: custName,
+                    country: custCountry,
+                    service: custService,
+                    email: custEmail
+                })
+            });
+            if (response.ok === true) {
+                const customer = await response.json();
+                reset();
+                document.querySelector("tbody").append(row(customer));
+            }
+        }
+        // Изменение адреса
+        async function Editcustomer(custId, custName, custCountry, custService, custEmail) {
+            const response = await fetch("api/customers", {
+                method: "PUT",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: custId,
+                    name: custName,
+                    country: custCountry,
+                    service: custService,
+                    email: custEmail
+                })
+            });
+            if (response.ok === true) {
+                const customer = await response.json();
+                reset();
+                document.querySelector("tr[data-rowid='" + customer._id + "']").replaceWith(row(customer));
+            }
+        }
+        // Удаление адреса
+        async function Deletecustomer(id) {
+            const response = await fetch("/api/customers/" + id, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const customer = await response.json();
+                document.querySelector("tr[data-rowid='" + customer._id + "']").remove();
+            }
+        }
+
+        // сброс формы
+        function reset() {
+            const form = document.forms["customerForm"];
+            form.reset();
+            form.elements["id"].value = 0;
+        }
+        // создание строки для таблицы
+        function row(customer) {
+
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", customer._id);
+
+            const idTd = document.createElement("td");
+            idTd.append(customer._id);
+            tr.append(idTd);
+
+            const nameTd = document.createElement("td");
+            nameTd.append(customer.name);
+            tr.append(nameTd);
+
+            const countryTd = document.createElement("td");
+            countryTd.append(customer.country);
+            tr.append(countryTd);
+
+            const serviceTd = document.createElement("td");
+            serviceTd.append(customer.service);
+            tr.append(serviceTd);
+
+            const emailTd = document.createElement("td");
+            emailTd.append(customer.email);
+            tr.append(emailTd);
+
+            const linksTd = document.createElement("td");
+
+            const editLink = document.createElement("a");
+            editLink.setAttribute("data-id", customer._id);
+            editLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            editLink.append("Редагувати");
+            editLink.addEventListener("click", e => {
+
+                e.preventDefault();
+                Getadress(customer._id);
+            });
+            linksTd.append(editLink);
+
+            const removeLink = document.createElement("a");
+            removeLink.setAttribute("data-id", customer._id);
+            removeLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            removeLink.append("Видалити");
+            removeLink.addEventListener("click", e => {
+
+                e.preventDefault();
+                Deletecustomer(customer._id);
+            });
+
+            linksTd.append(removeLink);
+            tr.appendChild(linksTd);
+
+            return tr;
+        }
+        // сброс значений формы
+        document.getElementById("reset").click(function (e) {
+            e.preventDefault();
+            reset();
+        })
+
+        // отправка формы
+        document.forms["customerForm"].addEventListener("submit", e => {
+            e.preventDefault();
+            const form = document.forms["customerForm"];
+            const id = form.elements["id"].value;
+            const name = form.elements["name"].value;
+            const country = form.elements["country"].value;
+            const service = form.elements["service"].value;
+            const email = form.elements["email"].value;
+            if (id == 0)
+                Createcustomer(id, name, country, service, email);
+            else
+                Editcustomer(id, name, country, service, email);
+        });
+
+        // загрузка адресов
+        Getadresses();
+    </script>
+</body>
+
+</html>

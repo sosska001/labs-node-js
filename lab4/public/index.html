@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Lab3_MongoDb</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+
+<body>
+    <style>
+        .container {
+            width: 90%;
+            height: 90%;
+            border: 1px;
+            border: 1.7px solid black;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+    </style>
+    <div class="container">
+        <h2>Список місць проживання</h2>
+        <form name="sityForm">
+            <input type="hidden" name="id" value="0" />
+            <div class="form-group">
+                <label for="country">Країна:</label>
+                <input class="form-control" name="country" />
+            </div>
+            <div class="form-group">
+                <label for="region">Область:</label>
+                <input class="form-control" name="region" />
+            </div>
+            <div class="form-group">
+                <label for="misto">Місто:</label>
+                <input class="form-control" name="misto" />
+            </div>
+            <div class="form-group">
+                <label for="street">Вулиця:</label>
+                <input class="form-control" name="street" />
+            </div>
+            <div class="panel-body">
+                <button type="submit" class="btn btn-sm btn-primary">Зберегти</button>
+                <a id="reset" class="btn btn-sm btn-primary">Скинути</a>
+            </div>
+        </form>
+        <table class="table table-condensed table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Країна</th>
+                    <th>Область</th>
+                    <th>Місто</th>
+                    <th>Вулиця</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <script>
+        // Получение всех адресов
+        async function Getadresses() {
+            // отправляет запрос и получаем ответ
+            const response = await fetch("/api/sityes", {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            // если запрос прошел нормально
+            if (response.ok === true) {
+                // получаем данные
+                const sityes = await response.json();
+                let rows = document.querySelector("tbody");
+                sityes.forEach(sity => {
+                    // добавляем полученные элементы в таблицу
+                    rows.append(row(sity));
+                });
+            }
+        }
+        // Получение одного адреса
+        async function Getadress(id) {
+            const response = await fetch("/api/sityes/" + id, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const sity = await response.json();
+                const form = document.forms["sityForm"];
+                form.elements["id"].value = sity._id;
+                form.elements["country"].value = sity.country;
+                form.elements["region"].value = sity.region;
+                form.elements["misto"].value = sity.misto;
+                form.elements["street"].value = sity.street;
+            }
+        }
+        // Добавление адреса
+        async function Createsity(sityCountry, sityRegion, sityMisto, sityStreet) {
+
+            const response = await fetch("api/sityes", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    country: sityCountry,
+                    region: sityRegion,
+                    misto: sityMisto,
+                    street: sityStreet
+                })
+            });
+            if (response.ok === true) {
+                const sity = await response.json();
+                reset();
+                document.querySelector("tbody").append(row(sity));
+            }
+        }
+        // Изменение адреса
+        async function Editsity(sityId, sityCountry, sityRegion, sityMisto, sityStreet) {
+            const response = await fetch("api/sityes", {
+                method: "PUT",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: sityId,
+                    country: sityCountry,
+                    region: sityRegion,
+                    misto: sityMisto,
+                    street: sityStreet
+                })
+            });
+            if (response.ok === true) {
+                const sity = await response.json();
+                reset();
+                document.querySelector("tr[data-rowid='" + sity._id + "']").replaceWith(row(sity));
+            }
+        }
+        // Удаление адреса
+        async function Deletesity(id) {
+            const response = await fetch("/api/sityes/" + id, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const sity = await response.json();
+                document.querySelector("tr[data-rowid='" + sity._id + "']").remove();
+            }
+        }
+
+        // сброс формы
+        function reset() {
+            const form = document.forms["sityForm"];
+            form.reset();
+            form.elements["id"].value = 0;
+        }
+        // создание строки для таблицы
+        function row(sity) {
+
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", sity._id);
+
+            const idTd = document.createElement("td");
+            idTd.append(sity._id);
+            tr.append(idTd);
+
+            const countryTd = document.createElement("td");
+            countryTd.append(sity.country);
+            tr.append(countryTd);
+
+            const regionTd = document.createElement("td");
+            regionTd.append(sity.region);
+            tr.append(regionTd);
+
+            const mistoTd = document.createElement("td");
+            mistoTd.append(sity.misto);
+            tr.append(mistoTd);
+
+            const streetTd = document.createElement("td");
+            streetTd.append(sity.street);
+            tr.append(streetTd);
+
+            const linksTd = document.createElement("td");
+
+            const editLink = document.createElement("a");
+            editLink.setAttribute("data-id", sity._id);
+            editLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            editLink.append("Редагувати");
+            editLink.addEventListener("click", e => {
+
+                e.preventDefault();
+                Getadress(sity._id);
+            });
+            linksTd.append(editLink);
+
+            const removeLink = document.createElement("a");
+            removeLink.setAttribute("data-id", sity._id);
+            removeLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            removeLink.append("Видалити");
+            removeLink.addEventListener("click", e => {
+
+                e.preventDefault();
+                Deletesity(sity._id);
+            });
+
+            linksTd.append(removeLink);
+            tr.appendChild(linksTd);
+
+            return tr;
+        }
+        // сброс значений формы
+        document.getElementById("reset").click(function (e) {
+            e.preventDefault();
+            reset();
+        })
+
+        // отправка формы
+        document.forms["sityForm"].addEventListener("submit", e => {
+            e.preventDefault();
+            const form = document.forms["sityForm"];
+            const id = form.elements["id"].value;
+            const country = form.elements["country"].value;
+            const region = form.elements["region"].value;
+            const misto = form.elements["misto"].value;
+            const street = form.elements["street"].value;
+            if (id == 0)
+                Createsity(country, region, misto, street);
+            else
+                Editsity(country, region, misto, street);
+        });
+
+        // загрузка адресов
+        Getadresses();
+    </script>
+</body>
+
+</html>
